@@ -53,21 +53,23 @@ Gmail - Send Report
 | Gmail API | Automated report delivery |
 | JavaScript | Data processing and prompt construction |
 
+
 ## 📸 Project Screenshots
 
 ### Workflow Overview
 
-screenshots/workflow.png
+![Workflow Overview](Screenshots/workflow.png)
 
 ### Research Input Form
 
-screenshots/form.png
-
+![Research Input Form](Screenshots/form.png)
 
 ### Email Delivery
 
-screenshots/Mail output page1.png
-screenshots/Mail output page2.png
+![Email Output - Page 1](Screenshots/Mail%20output%20page1.png)
+
+![Email Output - Page 2](Screenshots/Mail%20output%20page2.png)
+
 
 ## ⚙️ How It Works
 
