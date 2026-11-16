@@ -1,0 +1,273 @@
+{
+  "name": "AI Research and Reporting Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "AI Research Assistant",
+        "formDescription": "Submit a topic to generate an AI-powered research report.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Research Topic",
+              "fieldType": "textarea",
+              "fieldName": "Topic",
+              "placeholder": "Enter your research topic",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Research Focus",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "General Overview"
+                  },
+                  {
+                    "option": "Technical Analysis"
+                  },
+                  {
+                    "option": "Business Analysis"
+                  },
+                  {
+                    "option": "Market Research"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Start Research",
+          "path": "ai-research"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f61e4aef-b6af-4078-aa41-d32a0b172f18",
+      "name": "On form submission",
+      "webhookId": "f4ac3bf2-5699-4529-8869-32e90ae32ba9"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.Topic + \" \" + $json['Research Focus'] }}"
+            },
+            {
+              "name": "Topic",
+              "value": "General"
+            },
+            {
+              "name": "Search_depth",
+              "value": "basic"
+            },
+            {
+              "name": "max_results",
+              "value": "5"
+            },
+            {
+              "name": "include_answers",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "394c84d9-019a-4f57-9f4d-18576ce9b8f2",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ZOwnOYBYWXzJzZ6N",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst response = $input.first().json;\n\nconst results = response.results || [];\n\nconst articles = results\n  .filter(article => article.content && article.url)\n  .map((article, index) => ({\n    sourceNumber: index + 1,\n    title: article.title,\n    url: article.url,\n    relevanceScore: article.score,\n    content: article.content.slice(0, 3000)\n  }));\n\nreturn [\n  {\n    json: {\n      searchQuery: response.query,\n      totalSources: articles.length,\n      researchSources: articles\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        0
+      ],
+      "id": "31ab2fe7-88d9-479e-8f26-e28ea404bc76",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst data = $input.first().json;\n\nconst sources = data.researchSources || [];\n\nconst sourceText = sources.map(source => {\n  return `\nSOURCE ${source.sourceNumber}\nTitle: ${source.title}\nURL: ${source.url}\nRelevance: ${source.relevanceScore}\n\nContent:\n${source.content}\n`;\n}).join(\"\\n\\n\");\n\nconst prompt = `\nYou are a professional research analyst.\n\nResearch topic: ${data.searchQuery}\n\nYour task is to produce a well-structured research report\nusing the supplied research sources.\n\nInstructions:\n\n1. Write a concise executive summary.\n2. Explain the major findings.\n3. Identify important trends and developments.\n4. Discuss opportunities and challenges.\n5. Provide a conclusion.\n6. Cite sources using [1], [2], etc.\n7. Include a source list with the original URLs.\n8. Never invent facts, statistics or citations.\n9. Clearly distinguish sourced information from your own analysis.\n10. If the available evidence is insufficient, say so.\n\nUse Markdown formatting with clear headings.\n\nRESEARCH SOURCES:\n${sourceText}\n`;\n\nreturn [{\n  json: {\n    researchTopic: data.searchQuery,\n    totalSources: sources.length,\n    geminiPrompt: prompt\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "0caff675-fd33-415c-9b58-51662044a229",
+      "name": "Build Gemini Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=\n{{ JSON.stringify({\n  contents: [\n    {\n      role: \"user\",\n      parts: [\n        {\n          text: $json.geminiPrompt\n        }\n      ]\n    }\n  ],\n  generationConfig: {\n    temperature: 0.3,\n    maxOutputTokens: 5000\n  }\n}) }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        848,
+        0
+      ],
+      "id": "2c29ffda-64ca-46c5-99b4-0bf61892e85d",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "TxyHVRXVAvet8uC6",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst response = $input.first().json;\n\nconst candidate = response.candidates?.[0];\n\nif (!candidate) {\n  throw new Error(\"Gemini returned no response candidate.\");\n}\n\n// Extract generated report\nconst report = (candidate.content?.parts || [])\n  .map(part => part.text || \"\")\n  .join(\"\\n\")\n  .trim();\n\nif (!report) {\n  throw new Error(\"Gemini returned an empty research report.\");\n}\n\n// Escape HTML for safe email rendering\nconst safeReport = report.replace(/[&<>\"']/g, char => ({\n  \"&\": \"&amp;\",\n  \"<\": \"&lt;\",\n  \">\": \"&gt;\",\n  '\"': \"&quot;\",\n  \"'\": \"&#39;\"\n}[char]));\n\n// Convert Markdown-style headings and basic formatting\nconst formattedReport = safeReport\n  .replace(/^### (.*)$/gm, '<h3>$1</h3>')\n  .replace(/^## (.*)$/gm, '<h2>$1</h2>')\n  .replace(/^# (.*)$/gm, '<h1>$1</h1>')\n  .replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>')\n  .replace(/\\n/g, '<br>');\n\nconst reportHtml = `\n<div style=\"max-width:900px;margin:auto;padding:24px;font-family:Arial,sans-serif;color:#333;line-height:1.7;\">\n  <h1 style=\"color:#604080;\">AI Research Report</h1>\n  ${formattedReport}\n  <hr>\n  <p style=\"color:#888;font-size:12px;\">\n    Generated automatically using n8n, Tavily and Google Gemini.\n  </p>\n</div>\n`;\n\n// Retrieve original research topic\nconst researchData = $(\"Build Gemini Prompt\").first().json;\n\nreturn [\n  {\n    json: {\n      researchTopic: researchData.researchTopic,\n      totalSources: researchData.totalSources,\n      report: report,\n      reportHtml: reportHtml,\n      reportLength: report.length,\n      status: \"completed\",\n      generatedAt: new Date().toISOString()\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        0
+      ],
+      "id": "6a96c5bb-c60e-4386-ba8b-662ba6454fbc",
+      "name": "Extract Research Report"
+    },
+    {
+      "parameters": {
+        "sendTo": "zahideqbal112233@gmail.com",
+        "subject": "={{ 'AI Research Report: ' + $json.researchTopic }}",
+        "message": "={{ $json.reportHtml }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        0
+      ],
+      "id": "b0aa49f5-707e-4b89-aa7a-a44877191950",
+      "name": "Send a message",
+      "webhookId": "452bddbb-369e-4938-9d0d-839e90f7b92e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "4kwwPbGjBtBBp7rE",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Build Gemini Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gemini Prompt": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Extract Research Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Research Report": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "912bece5-f121-4bf9-9932-4adf3d6b54e6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4576a47391066a07ca43db63dc8483bcc5d67875c8bd1c0b49b6b5b9b9b00fb8"
+  },
+  "nodeGroups": [],
+  "id": "quDTXvXVquPvuMDM",
+  "tags": []
+}
