@@ -6,7 +6,7 @@ It accepts a research topic, searches the web for relevant information, generate
 
 ## 🚀 Live Demo
 
-**Try the application:** [Open Live Research Form](PASTE_YOUR_PRODUCTION_FORM_URL)
+**To Try the application:** Send mail for the research form link
 
 Submit a research topic and receive an AI-generated research report by email.
 
@@ -57,19 +57,17 @@ Gmail - Send Report
 
 ### Workflow Overview
 
-![Workflow Overview](screenshots/workflow-overview.png)
+screenshots/workflow.png
 
 ### Research Input Form
 
-![Research Form](screenshots/research-form.png)
+screenshots/form.png
 
-### Generated Research Report
-
-![Research Report](screenshots/research-report.png)
 
 ### Email Delivery
 
-![Email Output](screenshots/email-output.png)
+screenshots/Mail output page1.png
+screenshots/Mail output page2.png
 
 ## ⚙️ How It Works
 
